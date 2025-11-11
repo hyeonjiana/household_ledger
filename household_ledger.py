@@ -1,19 +1,19 @@
 import sys
+import os
 import subprocess
 from fileCheck import verify_files
 from logIn import load_user_info, login
 
 def main_menu():
     while True:
-        if not verify_files() : continue
+        if(not verify_files()) : continue
         print("\n=메인 메뉴=\n")
         print("[회원가입] [로그인] [종료]\n")
         choice = input("메뉴를 입력하세요: ").strip()
 
         if choice == "회원가입":
             try:
-                import os
-                script_path = os.path.join(os.path.dirname(__file__), "signup.py")
+                script_path = os.path.join(os.path.dirname(__file__), "logIn.py")
                 subprocess.run(["python", script_path], check=True)
             except Exception as e:
                 print(f"회원가입 실행 중 오류 발생: {e}")

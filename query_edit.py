@@ -206,20 +206,21 @@ def _filter_ledger_data(data_list, search_term):
     filtered_data = []
     
     # 1. 날짜/연월 검색 판단
-    try:
-        get_valid_date_or_month(search_term) # 형식만 검사 (5.3.1절)
-        for item in data_list:
-            if item['날짜'].startswith(search_term):
-                filtered_data.append(item)
-        return filtered_data
-    except ValueError as e:
-        return -1
-        print(f"오류 메시지: {e}")
+    if search_term and search_term[0].isdigit():
+        try:
+            get_valid_date_or_month(search_term) # 형식만 검사 (5.3.1절)
+            for item in data_list:
+                if item['날짜'].startswith(search_term):
+                    filtered_data.append(item)
+            return filtered_data
+        except ValueError as e:
+                print(f"오류 메시지: {e}")
+                return -2
 
     # 2. 카테고리 검색 판단 (표준명 또는 동의어 사용)
     standard_category = _get_standard_name(search_term, CATEGORY_MAP)
     if standard_category:
-        for item in data_list:
+        for item in data_list: 
             if item['카테고리'] == standard_category:
                 filtered_data.append(item)
         return filtered_data
@@ -232,12 +233,16 @@ def _filter_ledger_data(data_list, search_term):
                 filtered_data.append(item)
         return filtered_data
 
-    return []
+    return -1
 
-def _display_ledger_table(data_list, user_id):
+def _display_ledger_table(data_list, user_id, mode="query", total_asset_data_list=None):
     """조회 결과를 UI/UX에 맞게 표 형태로 출력 (7.8절)"""
-    print("번호|     날짜      | 지출    | 수입     | 카테고리| 결제수단")
-    print("--------------------------------------------------------------")
+    if mode=="query":
+        print("번호|     날짜      | 지출    | 수입     | 카테고리| 결제수단")
+        print("--------------------------------------------------------------")
+    
+    asset_list_to_use = total_asset_data_list if total_asset_data_list is not None else data_list
+   
     display_to_original_idx_map = []
     #idxList = []
     cnt = 1
@@ -247,14 +252,17 @@ def _display_ledger_table(data_list, user_id):
         income = f"{item['금액']:,}" if item['유형'] == 'I' else '-'
         #idxList.append(item['idx'])
         display_to_original_idx_map.append(item['idx'])
-        print(f" {cnt:<3}| {item['날짜']:<13} |{expense:>8} | {income:>8} | {item['카테고리']:<6}| {item['결제수단']:<6}")
+        if mode=="query":
+            print(f" {cnt:<3}| {item['날짜']:<13} |{expense:>8} | {income:>8} | {item['카테고리']:<6}| {item['결제수단']:<6}")
         cnt += 1
     
-    print("--------------------------------------------------------------")
+    if mode=="query":
+        print("--------------------------------------------------------------")
     
-    total_asset = calculate_total_asset(data_list)
-    print(f"현재 ID님의 총 자산은 ₩{total_asset:,}입니다.")
-    print("-------------------------------------------------------------")
+    total_asset = calculate_total_asset(asset_list_to_use)
+    if mode=="query":
+        print(f"현재 ID님의 총 자산은 ₩{total_asset:,}입니다.")
+        print("-------------------------------------------------------------")
     
     return display_to_original_idx_map  
 
@@ -264,8 +272,6 @@ def handle_query_and_display(user_id, mode = "query"):
     original_data_list = load_user_ledger(user_id) 
     
     if mode == "query":
-        # print("메뉴를 입력하세요: 조회")
-        # print("--------------------------------------------------------------")
         pass
     while True:
         print("\n[ 전체조회 ]   [ 검색조회 ]")
@@ -274,7 +280,7 @@ def handle_query_and_display(user_id, mode = "query"):
 
         if menu == "전체조회":
             if original_data_list:
-                _display_ledger_table(original_data_list, user_id)
+                _display_ledger_table(original_data_list, user_id, mode="query", total_asset_data_list=original_data_list)
                 return original_data_list
             else:
                 print("검색 결과가 없습니다.")
@@ -293,9 +299,13 @@ def handle_query_and_display(user_id, mode = "query"):
             print("--------------------------------------------------------------")
             
             filtered_data = _filter_ledger_data(original_data_list, search_term)
-            
-            if filtered_data != -1 and filtered_data:
-                _display_ledger_table(filtered_data, user_id)
+          
+            if filtered_data == -1 or filtered_data == -2:
+                if filtered_data == -1:
+                    print("입력이 올바르지 않습니다.")
+                continue
+            elif filtered_data:
+                _display_ledger_table(filtered_data, user_id, mode="query", total_asset_data_list=original_data_list)
                 return filtered_data
             elif not filtered_data:
                 print("검색 결과가 없습니다.")
@@ -304,6 +314,7 @@ def handle_query_and_display(user_id, mode = "query"):
         else:
             print("입력이 올바르지 않습니다.")
             continue
+
 
 # 💡 [편집 함수 헬퍼] _format_item_for_display
 def _format_item_for_display(item):
@@ -321,16 +332,13 @@ def _format_item_for_display(item):
 def handle_edit(user_id):
     """가계부 편집 기능의 전체 흐름을 담당 (7.9절)"""
     
-    print("메뉴를 입력하세요: 편집")
-    print("--------------------------------------------------------------")
-    
     data_for_display = handle_query_and_display(user_id, mode="edit")
     
     if not data_for_display:
         print("조회할 내역이 없습니다. 주 프롬프트로 돌아갑니다.")
         return
     
-    display_to_original_idx_map = _display_ledger_table(data_for_display, user_id)
+    display_to_original_idx_map = _display_ledger_table(data_for_display, user_id, mode="edit")
     
     print("===================================")
     while True:
@@ -358,18 +366,19 @@ def handle_edit(user_id):
             if selected_item is None:
                 print("입력이 올바르지 않습니다.")
                 continue
-
+            
             print("\n편집 기능")
             print("      [ 수정 ]  [ 삭제 ]")
-            edit_action = input("\n원하는 기능을 입력하세요: ").strip()
-            
-            if edit_action == "수정":
-                return process_update(user_id, selected_item)
-            elif edit_action == "삭제":
-                return process_delete(user_id, selected_item)
-            else:
-                print("입력이 올바르지 않습니다.")
-                continue
+            while True:
+                edit_action = input("\n원하는 기능을 입력하세요: ").strip()
+                
+                if edit_action == "수정":
+                    return process_update(user_id, selected_item)
+                elif edit_action == "삭제":
+                    return process_delete(user_id, selected_item)
+                else:
+                    print("입력이 올바르지 않습니다.")
+                    continue
 
         except Exception:
             print("입력이 올바르지 않습니다.")
@@ -386,47 +395,56 @@ def process_update(user_id, target_item):
     print("===================================")
     
     # 날짜 입력 및 유효성 검사
-    new_date = input("날짜 입력(YYYY-MM-DD): ").strip()
-    if new_date:
+    while True:
+        new_date = input("날짜 입력(YYYY-MM-DD): ").strip()
+        if not new_date:
+            break
         try:
             current_item['날짜'] = get_valid_date(new_date, is_edit_mode=True)
+            break
         except ValueError as e:
             print(f"오류 메시지: {e}")
-            return False
+            
 
     print("--------------------------------------------------------------")
     # 카테고리 입력 및 유효성 검사
     print("카테고리")
     print("      [식비] [교통] [주거] [여가] [기타] [입금]")
-    new_category = input("카테고리 입력: ").strip()
-    if new_category:
+    while True:
+        new_category = input("카테고리 입력: ").strip()
+        if not new_category:
+            break
         try:
             current_item['카테고리'] = get_valid_category(new_category, current_item['유형'])
+            break
         except ValueError as e:
             print(f"오류 메시지: {e}")
-            return False
 
     print("--------------------------------------------------------------")
     # 금액 입력 및 유효성 검사
-    new_amount = input("금액 입력: ").strip()
-    if new_amount:
+    while True:
+        new_amount = input("금액 입력: ").strip()
+        if not new_amount:
+            break
         try:
             current_item['금액'] = get_valid_amount(new_amount)
+            break
         except ValueError as e:
             print(f"오류 메시지: {e}")
-            return False
 
     print("--------------------------------------------------------------")
     # 결제수단 입력 및 유효성 검사
     print("결제수단")
     print("      [카드] [현금] [계좌이체]")
-    new_payment = input("결제수단 입력: ").strip()
-    if new_payment:
+    while True:
+        new_payment = input("결제수단 입력: ").strip()
+        if not new_payment:
+            break
         try:
             current_item['결제수단'] = get_valid_payment(new_payment)
+            break
         except ValueError as e:
             print(f"오류 메시지: {e}")
-            return False
     
     # 7.9절: 수정된 내용 출력
     print("===================================")

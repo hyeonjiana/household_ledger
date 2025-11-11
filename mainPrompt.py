@@ -1,6 +1,6 @@
 from fileCheck import verify_files
-from test_ledger import handle_query_and_display
-from test_ledger import handle_edit
+from query_edit import handle_query_and_display
+from query_edit import handle_edit
 from expense_income import expenditure
 from expense_income import income
 #주 프롬프트 :
