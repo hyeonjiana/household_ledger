@@ -10,7 +10,7 @@ SEPERATOR2 = '=============================================================='
 
 def print_mainPrompt():
     print('=주 프롬프트=\n')
-    print('[지출] [수입] [조회]\n[편집] [저장] [로그아웃]\n')
+    print('[지출] [수입] [조회]\n[편집] [검사] [로그아웃]\n')
     choice = input("메뉴를 입력하세요: ")
     print(SEPERATOR)
     return choice
@@ -27,11 +27,11 @@ def callFunc(c, user_id):
     elif(c == '편집'):
         handle_edit(user_id)
         if(not verify_files()) : return -1
-    elif(c == '저장'):
-        print("저장하는 중...")
+    elif(c == '검사'):
+        print("검사하는 중...")
         print(SEPERATOR)
         if(verify_files()):
-            print("성공적으로 저장되었습니다.\n주프롬프트로 돌아갑니다.")
+            print("성공적으로 검사되었습니다.\n주프롬프트로 돌아갑니다.")
             print(SEPERATOR2)
         else :  return -1
     elif(c == '로그아웃'):

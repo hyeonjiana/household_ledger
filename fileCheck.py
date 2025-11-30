@@ -64,7 +64,7 @@ def check_valid_payment(payment_input):
 def check_userfile(users):
     user_id_regex = re.compile(r'^[A-Za-z0-9]{6,12}$')
     password_regex = re.compile(r'^[A-Za-z0-9!@#$^&*]{8,15}$')
-
+    id_list = []
     # 1부터 시작하는 라인 번호와 함께 리스트를 순회합니다.
     for line_num, line in enumerate(users, 1):
         
@@ -83,6 +83,12 @@ def check_userfile(users):
         # 3. Password 규칙 검사
         if not password_regex.match(password.strip()):
             return line_num
+        
+        # 4. id 중복 검사
+        user_id = user_id.lower()
+        if user_id in id_list :
+            return line_num
+        id_list.append(user_id)
 
     # for 루프를 모두 통과했으면, 모든 라인이 유효합니다.
     return None
