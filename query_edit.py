@@ -357,9 +357,6 @@ def _format_item_for_display(item):
 def handle_edit(user_id):
     """가계부 편집 기능의 전체 흐름을 담당 (7.9절)"""
     
-    print("메뉴를 입력하세요: 편집")
-    print("--------------------------------------------------------------")
-    
     data_for_display = handle_query_and_display(user_id, mode="edit")
     
     if not data_for_display:
@@ -418,7 +415,11 @@ def process_update(user_id, target_item):
     # target_item의 참조를 원본 리스트에서 업데이트
     # (load_user_ledger가 복사본을 주므로, 실제 변경할 항목을 원본에서 찾아야 함)
     current_item = next(item for item in original_data_list if item['idx'] == target_item['idx'])
-
+    
+    origin_sum = calculate_total_asset(original_data_list)
+    old_type = current_item['유형']
+    old_category = current_item['카테고리']
+    old_amount = current_item['금액']
     print("===================================")
     
     # 날짜 입력 및 유효성 검사
@@ -452,6 +453,15 @@ def process_update(user_id, target_item):
             else:
                 current_item['유형'] = 'E'
             current_item['카테고리'] = standard_category
+
+            #지출이 수입보다 큰 경우 처리
+            sum = calculate_total_asset(original_data_list)
+            if sum < 0:
+                print("현재 지출이 수입보다 커집니다.")
+                print(f"현재 {user_id}님의 총 자산은 ₩{origin_sum}입니다")
+                current_item['유형'] = old_type
+                current_item['카테고리'] = old_category
+                continue
             break
         except ValueError as e:
             print(f"오류 메시지: {e}")
@@ -465,6 +475,14 @@ def process_update(user_id, target_item):
             break
         try:
             current_item['금액'] = get_valid_amount(new_amount)
+
+            #지출이 수입보다 큰 경우 처리
+            sum = calculate_total_asset(original_data_list)
+            if sum < 0:
+                print("현재 지출이 수입보다 커집니다.")
+                print(f"현재 {user_id}님의 총 자산은 ₩{origin_sum}입니다")
+                current_item['금액'] = old_amount
+                continue
             break
         except ValueError as e:
             print(f"오류 메시지: {e}")
@@ -517,7 +535,19 @@ def process_delete(user_id, target_item):
     confirm = input("정말 삭제하시겠습니까?(Y/N): ").strip().upper()
     if confirm == 'Y':
         print("\n삭제하는 중 . . .")
-        
+
+        #지출이 수입보다 커지는 경우
+        sum = calculate_total_asset(original_data_list)
+        if target_item['유형'] == 'I' :
+            sum -= target_item['금액']
+            if sum < 0:
+                print("--------------------------------------------------------------")
+                print("삭제에 실패했습니다")
+                print("현재 지출이 수입보다 커집니다.")
+                print(f"현재 {user_id}님의 총 자산은 ₩{sum+target_item['금액']}입니다.")
+                print("--------------------------------------------------------------")
+                return True
+            
         # 원본 데이터 리스트에서 해당 항목 제거
         original_data_list[:] = [item for item in original_data_list if item['idx'] != target_item['idx']]
         

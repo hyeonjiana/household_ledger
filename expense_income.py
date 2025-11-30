@@ -8,6 +8,7 @@ from pathlib import Path
 HOME_DIR = Path.cwd()
 # 가계부 파일 접미사
 LEDGER_FILE_SUFFIX = "_HL.txt"
+SEPERATOR1 = '--------------------------------------------------------------'
 SEPERATOR2 = '=============================================================='
 
 cat1={'식비','음식','밥','food','식'}
@@ -130,10 +131,8 @@ def hsave(user_id, date, type, amount, category, method):
                         if not line.endswith('\n'):
                             f.write("\n")
 
-                    f.write(date+'\t'+type+'\t'+amount+'\t'+category+'\t'+method+"\n") #파일에 저장
-            
+                    #지출이 수입보다 큰경우 계산
                     hh = [line for line in hh if line.strip()] #빈 줄 무시
-
                     sum=0
                     for line in hh:
                         line=line.split()
@@ -141,26 +140,35 @@ def hsave(user_id, date, type, amount, category, method):
                             sum=sum-int(line[2])
                         elif(line[1]=='I'):
                             sum=sum+int(line[2])
+                    origin_sum = sum
+                    if type == 'I' :
+                        sum += int(amount)
+                    else :
+                        sum -= int(amount)
+                    if sum < 0 :
+                        print(SEPERATOR1)
+                        print("현재 지출이 수입보다 커집니다.")
+                        print(f"현재 {user_id}님의 총 자산은 ₩{origin_sum}입니다.")
+                        print(SEPERATOR1)
+                        return False            
+
+                    f.write(date+'\t'+type+'\t'+amount+'\t'+category+'\t'+method+"\n") #파일에 저장
+            
             except Exception as e:
                 # 파일을 읽는 도중 인코딩 등 다른 문제가 발생했을 경우
                 print(f"!치명적오류: {user_id}{LEDGER_FILE_SUFFIX} 파일을 읽는 중 오류가 발생했습니다: {e}")
                 print("프로그램을 종료시킵니다.")
                 sys.exit()
 
-            if(type=='E'):
-                sum=sum-int(amount)
-            elif(type=='I'):
-                sum=sum+int(amount)
-
             print("\n저장이 완료되었습니다.")
             print("현재 ID님의 총 자산은 ₩"+str(sum)+"입니다.")
             print("------------------------------------------------------------")
-            break
+            return True
         elif(yn=='n'):
             print("입력을 취소합니다.")
             print("주 프롬프트로 돌아갑니다.")
             print(SEPERATOR2)
-            return
+            return True
 
 
 def expenditure(user_id):
@@ -172,7 +180,10 @@ def expenditure(user_id):
     method=minput()
     print("날짜         지출    수입    카테고리    결제수단")
     print(date+"   "+amount+"    -      "+category+"        "+method)
-    hsave(user_id, date, type, amount, category, method)
+    while not hsave(user_id, date, type, amount, category, method) :
+        amount = ainput()
+        print("날짜         지출    수입    카테고리    결제수단")
+        print(date+"   "+amount+"    -      "+category+"        "+method)
     
 def income(user_id):
     type='I'

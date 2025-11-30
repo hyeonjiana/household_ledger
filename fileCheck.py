@@ -107,6 +107,7 @@ def check_ledgerfile(ledgers):
     #    - 1~999,999,999 (1~9자리, 0으로 시작 안 함) / 1차 수정
     amount_regex = re.compile(r'^([1-9][0-9]{0,8})$')
 
+    sum = 0
     for line_num, line in enumerate(ledgers, 1):
         
         # 1. 형식 검사: 정확히 4개의 탭 (5개 필드)
@@ -141,13 +142,23 @@ def check_ledgerfile(ledgers):
             return line_num
 
         # 5. Category 검사 (외부 함수)
-        if not check_valid_category(category_str):
-            return line_num
+        #### 카테고리 검사 미구현 상태여서 주석 처리 
+        # if not check_valid_category(category_str):
+        #     return line_num
 
         # 6. Payment 검사 (외부 함수)
         if not check_valid_payment(payment_str.strip()):
             return line_num
 
+        #7. 지출이 수입보다 큰 경우 검사를 위한 총 자산 계산
+        if type_str == 'I' : 
+            sum += int(amount_str) 
+        else :
+            sum -= int(amount_str)
+        
+    # 지출이 수입보다 큰 경우 검사
+    if sum < 0 :
+        return False
     # 모든 라인이 유효
     return None
 
@@ -292,8 +303,12 @@ def verify_files():
             print("프로그램을 종료시킵니다.")
             sys.exit()
         lineNum = check_ledgerfile(ledgers)
-        if(lineNum!=None) :
+        if lineNum!=None and lineNum != False :
             print(f"!치명적오류: 현재 {ledger_file_name} {lineNum}행에서 오류가 발생되었습니다.")
+            print("프로그램을 종료시킵니다.")
+            sys.exit()
+        elif lineNum == False :
+            print(f"!치명적오류: 현재 {ledger_file_name}에서 지출이 수입보다 많습니다.")
             print("프로그램을 종료시킵니다.")
             sys.exit()
             
