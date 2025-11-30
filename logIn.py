@@ -3,10 +3,9 @@ import os
 import re
 from mainPrompt import mainPrompt
 # 🥠2차: category 모듈 import
-from category import create_default_settings, load_user_categories
+from category import create_default_settings, load_user_categories, SETTING_FILE_SUFFIX
 
 USER_INFO_FILE = "user_info.txt"
-SETTING_FILE_SUFFIX = "_setting.txt" # 🥠2차: setting 파일
 SEPERATOR2 = '=============================================================='
 
 ##회원가입 파트
