@@ -132,6 +132,7 @@ def balance_menu(user_id):
             break
         print(SEPERATOR)
     calculate_balance(date[0], date[1], user_id)
+    print(SEPERATOR2)
 
 def valid_budget_date(date_str):
     """
@@ -200,7 +201,7 @@ def calculate_budget(date_str=None):
 
     if not budgets and not date_str:
         print("조회할 예산내역이 없습니다.")
-        return True # 오류는 아니므로 True
+        return False # 오류는 아니므로 True
 
     # 2. 가계부 파일 읽기 및 지출 합산
     expenses = {key: 0 for key in budgets.keys()} # { 'YYYY-MM': total_expense }
@@ -348,6 +349,7 @@ def delete_budget_file(date_str):
                     deleted = True
                     continue # 해당 줄 건너뛰기 (삭제)
                 f.write(line)
+
         
         if deleted:
             print("삭제가 완료 되었습니다.")
@@ -388,10 +390,12 @@ def budget_menu():
                 yn = input("이대로 저장하시겠습니까? (Y/N): ").lower()
                 if yn == 'y' :
                     append_budget_file(date_str, amount_str)
+                    break
                 elif(yn=='n'):
                     print("입력을 취소합니다.")
                     print("주 프롬프트로 돌아갑니다.")
                     print(SEPERATOR2)
+                    break
             else:
                 print("이미 해당 월의 예산이 존재합니다. [수정]을 이용해주세요.")
             
@@ -439,10 +443,11 @@ def budget_menu():
 
         elif command == "조회":
             calculate_budget()
+            break
         else:
             print("입력이 올바르지 않습니다.")
-        print(SEPERATOR2)
-        break
+    print(SEPERATOR2)
+        
 
 def print_mainPrompt():
     print('=주 프롬프트=\n')
