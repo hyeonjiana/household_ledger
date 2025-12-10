@@ -111,6 +111,10 @@ def calculate_balance(date_1, date_2, user_id):
                 total_income += int(part[2])
             else :
                 total_expense += int(part[2])
+    # 검색 결과 없을때
+    if total_expense == 0 and total_income == 0 :
+        print("검색 결과가 없습니다.")
+        return
     # 잔고 출력
     period = str(date_1) + " ~ " + str(date_2)
     balance = total_income - total_expense
