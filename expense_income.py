@@ -8,9 +8,11 @@ from pathlib import Path
 HOME_DIR = Path.cwd()
 # 가계부 파일 접미사
 LEDGER_FILE_SUFFIX = "_HL.txt"
+SETTING_FILE_SUFFIX = "_setting.txt"
 SEPERATOR1 = '--------------------------------------------------------------'
 SEPERATOR2 = '=============================================================='
 
+user_id_global = ''
 cat1={'식비','음식','밥','food','식'}
 cat2={'교통','차','지하철','transport','transportation','교'}
 cat3={'주거','월세','관리비','housing','house','rent','주'}
@@ -169,10 +171,104 @@ def hsave(user_id, date, type, amount, category, method):
             print("주 프롬프트로 돌아갑니다.")
             print(SEPERATOR2)
             return True
+        
+def calculate_budget(date_str=None):
+    """
+    예산 및 지출 비교 계산 출력
+    """
+    setting_file_name =user_id_global + SETTING_FILE_SUFFIX
+    setting_file_path = HOME_DIR / setting_file_name
+    ledger_file_name =user_id_global + LEDGER_FILE_SUFFIX
+    ledger_file_path = HOME_DIR / ledger_file_name
+    
+    budgets = {} # { 'YYYY-MM': amount }
+    is_budget_section = False
+    # 1. 예산 파일 읽기
+    try:
+        if setting_file_path.exists():
+            with open(setting_file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    #카테고리 내용 건너뛰기
+                    if line == '\n' : 
+                        is_budget_section = True
+                        continue
+                    if not is_budget_section : continue
+                    parts = line.split('\t')                    
+                    b_date = parts[0]
+                    b_amount = int(parts[1])
+                    # date_str 인자가 있으면 해당 날짜만 로드
+                    if date_str is None :
+                        budgets[b_date] = b_amount
+                    elif(b_date == date_str):
+                        budgets[date_str] = b_amount
+    
+                
+        else:
+            # 설정 파일이 없으면 빈 상태로 진행
+            print(f"!오류: 가계부 파일이 존재하지 않습니다. 새로운 파일 생성.")
+            with open(setting_file_path, 'w', encoding='utf-8') as f:
+                pass
+    except Exception as e:
+        print(f"!오류: {setting_file_name} 파일을 읽는 중 오류가 발생했습니다: {e}")
+        return False
 
+    if not budgets and not date_str:
+        print("조회할 예산내역이 없습니다.")
+        return False # 오류는 아니므로 True
+
+    # 2. 가계부 파일 읽기 및 지출 합산
+    expenses = {key: 0 for key in budgets.keys()} # { 'YYYY-MM': total_expense }
+    
+    try:
+        if ledger_file_path.exists():
+            with open(ledger_file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    parts = line.split('\t')
+                    # parts: [Date, Type, Amount, Category, Payment]
+                    l_date_str = parts[0] # YYYY-MM-DD
+                    l_type = parts[1]
+                    l_amount = int(parts[2])
+
+                    # YYYY-MM 추출
+                    l_month_str = l_date_str[:7]
+
+                    # 해당 월이 예산 목록에 있고, 지출(E)인 경우 합산
+                    # (설계서 잔고 부분 참고: 수입(I) 제외한 것이 지출)
+                    if l_month_str in expenses and l_type == 'E':
+                        expenses[l_month_str] += l_amount
+    except Exception as e:
+        print(f"!오류: {ledger_file_path} 파일을 읽는 중 오류가 발생했습니다: {e}")
+        return False
+
+    # date_str이 None이 아닌경우 처리
+    is_expenses_exist = date_str in expenses
+    if date_str and is_expenses_exist:
+        diff = budgets[date_str]-expenses[date_str]
+        if diff >= 0 :
+            print(f"{date_str:<8} 예산 금액:{budgets[date_str]:>10} / 예산 금액:{diff:>10}")
+        else :
+            print("예산을 초과하였습니다!")
+            print(f"{date_str} 예산 금액:{budgets[date_str]:>10} / 예산 초과 금액:{diff:>10}")
+        return True
+    elif date_str and not is_expenses_exist :
+        return False
+    
+    # 날짜순 정렬하여 출력
+    sorted_months = sorted(budgets.keys())
+    for month in sorted_months:
+        b_amt = budgets[month]
+        e_amt = expenses[month]
+        diff = b_amt - e_amt
+        b_str = "초과 금액 " if diff < 0  else "예산 차액"
+        print(f"{month:<8} 예산 금액:{b_amt:>10} / {b_str}:{diff:>10}")
+    print('\n')
+
+    return True
 
 def expenditure(user_id):
     type='E'
+    global user_id_global
+    user_id_global = user_id
     print("\n")
     date=dinput()
     category=cinput()
@@ -184,7 +280,8 @@ def expenditure(user_id):
         amount = ainput()
         print("날짜         지출    수입    카테고리    결제수단")
         print(date+"   "+amount+"    -      "+category+"        "+method)
-    
+    calculate_budget(date[0:7])
+
 def income(user_id):
     type='I'
     print("\n")

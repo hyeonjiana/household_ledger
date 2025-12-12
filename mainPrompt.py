@@ -190,9 +190,9 @@ def calculate_budget(date_str=None):
                     b_amount = int(parts[1])
                     # date_str 인자가 있으면 해당 날짜만 로드
                     if date_str is None :
-                        budgets[b_date] = b_amount
-            if date_str:
-                budgets[date_str] = 0
+                        budgets[b_date] = b_amount        
+                    elif(b_date == date_str):
+                        budgets[date_str] = b_amount
                 
         else:
             # 설정 파일이 없으면 빈 상태로 진행
@@ -232,8 +232,17 @@ def calculate_budget(date_str=None):
         return False
 
     # date_str이 None이 아닌경우 처리
-    if date_str :
-        return expenses[date_str]
+    is_expenses_exist = date_str in expenses
+    if date_str and is_expenses_exist:
+        diff = budgets[date_str]-expenses[date_str]
+        if diff >= 0 :
+            print(f"{date_str:<8} 예산 금액:{budgets[date_str]:>10} / 예산 금액:{diff:>10}")
+        else :
+            print("예산을 초과하였습니다!")
+            print(f"{date_str} 예산 금액:{budgets[date_str]:>10} / 예산 초과 금액:{diff:>10}")
+        return True
+    elif date_str and not is_expenses_exist :
+        return False
     
     # 날짜순 정렬하여 출력
     sorted_months = sorted(budgets.keys())
@@ -383,7 +392,7 @@ def budget_menu():
 
             # 예산 날짜 존재여부 확인
             if not check_file_date(date_str):
-                expense = calculate_budget(date_str)
+                expense = calculate_expense(date_str)
                 if expense is False: break
                 elif int(amount_str) - expense < 0:
                     print("예산은 총 지출액보다 큰 금액으로만 설정할 수 있습니다.")
@@ -416,7 +425,7 @@ def budget_menu():
                     if check_file_date(date_str): break
                     else: print("해당 월의 예산이 존재하지 않습니다. 다시 입력해주세요")
             
-            expense = calculate_budget(date_str)
+            expense = calculate_expense(date_str)
             if expense is False: break
             elif int(amount_str) - expense < 0:
                 print("예산은 총 지출액보다 큰 금액으로만 설정할 수 있습니다.")
@@ -458,6 +467,7 @@ def budget_menu():
                         print("입력이 올바르지 않습니다.")
                         continue
                 break
+            break
 
         elif command == "조회":
             calculate_budget()
@@ -465,6 +475,31 @@ def budget_menu():
         else:
             print("입력이 올바르지 않습니다.")
     print(SEPERATOR2)
+
+def calculate_expense(date_str):
+    ledger_file_name =user_id_global + LEDGER_FILE_SUFFIX
+    ledger_file_path = HOME_DIR / ledger_file_name
+    expense = 0
+    try:
+        if ledger_file_path.exists():
+            with open(ledger_file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    parts = line.split('\t')
+                    # parts: [Date, Type, Amount, Category, Payment]
+                    l_date_str = parts[0] # YYYY-MM-DD
+                    l_type = parts[1]
+                    l_amount = int(parts[2])
+
+                    # YYYY-MM 추출
+                    l_month_str = l_date_str[:7]
+
+                    if l_month_str == date_str and l_type == 'E':
+                        expense += l_amount
+            return expense
+    except Exception as e:
+        print(f"!오류: {ledger_file_path} 파일을 읽는 중 오류가 발생했습니다: {e}")
+        return False
+
         
 
 def print_mainPrompt():
