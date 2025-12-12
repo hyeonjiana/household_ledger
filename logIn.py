@@ -34,8 +34,8 @@ def load_user_info(filename=USER_INFO_FILE):
 
 
 def login(user_data):
-    user_id = input("아이디 입력: ").strip()
-    password = input("비밀번호 입력: ").strip()
+    user_id = input("아이디 입력: ") 
+    password = input("비밀번호 입력: ")
 
     if user_id in user_data and user_data[user_id] == password:
         print("로그인 되었습니다.")
@@ -59,9 +59,9 @@ def is_valid_password(password):
 def signup():
     print("\n[회원가입 메뉴]")
     print("----------------------------------------------")
-    user_id = input("아이디 입력: ").strip()
-    password = input("비밀번호 입력: ").strip()
-    password_check = input("비밀번호 확인: ").strip()
+    user_id = input("아이디 입력: ").lower()
+    password = input("비밀번호 입력: ")
+    password_check = input("비밀번호 확인: ")
 
     # 디버그 출력
     # print(f"[디버그] 입력된 아이디: {repr(user_id)}")
