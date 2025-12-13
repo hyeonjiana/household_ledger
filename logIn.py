@@ -39,6 +39,7 @@ def login(user_data):
 
     if user_id in user_data and user_data[user_id] == password:
         print("로그인 되었습니다.")
+        load_user_categories(user_id)
         print(SEPERATOR2)
         mainPrompt(user_id)
         return True
